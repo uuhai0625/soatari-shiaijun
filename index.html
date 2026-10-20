@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<script>
+  (function() {
+    var GA_ID = 'G-045MN88PCM';
+    var isLocalDev = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+    if (isLocalDev) return;
+    try { if (/[?&]no_ga=0/.test(location.search)) localStorage.removeItem('no_ga'); if (/[?&]no_ga=1/.test(location.search)) localStorage.setItem('no_ga', '1'); if (localStorage.getItem('no_ga') === '1') return; } catch (e) {}
+    var gaQ = new URLSearchParams(location.search); if (gaQ.get('obs') === '1' || gaQ.get('no_ga') === '1') return;
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', GA_ID);
+    document.addEventListener('click', function(e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href*="booth.pm"]') : null;
+      if (!a) return;
+      gtag('event', 'booth_click', { link_url: a.href, link_id: a.id || '', link_text: (a.textContent || '').trim().slice(0, 40) });
+    });
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="総当たり戦(リーグ戦)の試合順を無料で自動作成。チームの名前とコートの数を入れるだけで、試合の番・何回戦・コート・審判・開始時刻の入った表ができます。コートが少ないときは同じチームが続けて試合しにくい順番に。昼休みや2回総当たりも。4〜12チーム、個人戦にも。登録不要、入力した名前は送信しません。">
+<link rel="canonical" href="https://uuhai0625.github.io/soatari-shiaijun/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:title" content="総当たり試合順メーカー|総当たり戦の試合順・コート割り・審判表を無料で自動作成(時刻つき)">
+<meta property="og:description" content="総当たり戦(リーグ戦)の試合順を無料で自動作成。チームの名前とコートの数を入れるだけで、試合の番・何回戦・コート・審判・開始時刻の入った表ができます。コートが少ないときは同じチームが続けて試合しにくい順番に。昼休みや2回総当たりも。4〜12チーム、個人戦にも。登録不要、入力した名前は送信しません。">
+<meta property="og:url" content="https://uuhai0625.github.io/soatari-shiaijun/">
+<meta property="og:image" content="https://uuhai0625.github.io/soatari-shiaijun/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<title>総当たり試合順メーカー|総当たり戦の試合順・コート割り・審判表を無料で自動作成(時刻つき)</title>
+<style>
+  :root {
+    --bg: #f3f4f9;
+    --panel: #ffffff;
+    --border: #d8dbea;
+    --field-border: #4a4f66;
+    --text: #1e2133;
+    --muted: #4e5370;
+    --accent: #3b4cb8;
+    --accent-dark: #2a378a;
+    --ng: #b3261e;
+    --locked: #c6cbe3;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  header { background: var(--accent-dark); color: #fff; padding: 24px 20px 18px; text-align: center; }
+  header h1 { margin: 0 0 6px; font-size: 1.35rem; }
+  header p { margin: 0; font-size: .9rem; }
+  main { max-width: 1120px; margin: 0 auto; padding: 22px 16px 50px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-areas: "team pv" "rule pv" "time pv"; column-gap: 18px; align-items: start; }
+  .layout > * { min-width: 0; }
+  #team-card { grid-area: team; } #rule-card { grid-area: rule; } #time-card { grid-area: time; }
+  #pv-card { grid-area: pv; position: sticky; top: 12px; }
+  section.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; }
+  section.card h2 { margin: 0 0 6px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .fine { color: var(--muted); font-size: .86rem; margin: 8px 0 0; }
+  .badge { display: inline-block; font-size: .7rem; padding: 2px 8px; border-radius: 999px; background: #e5e8fa; color: #2a378a; font-weight: bold; }
+  .hidden { display: none !important; }
+  label.field, div.field { display: block; margin-bottom: 12px; }
+  .lbl { font-size: .9rem; font-weight: bold; display: block; }
+  .hint { font-size: .875rem; color: var(--muted); font-weight: normal; display: block; margin-top: 2px; }
+  select, input[type=text], input[type=time], input[type=number], textarea { margin-top: 5px; min-height: 44px; border: 1px solid var(--field-border); border-radius: 8px; font-size: 1rem; font-family: inherit; background: #fff; color: var(--text); width: 100%; padding: 8px 10px; }
+  textarea { min-height: 170px; resize: vertical; line-height: 1.5; }
+  .row2 { display: flex; gap: 12px; }
+  .row2 > * { flex: 1; min-width: 0; }
+  .chk { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: .92rem; cursor: pointer; }
+  .chk input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .btn { min-height: 44px; min-width: 44px; padding: 9px 16px; border-radius: 8px; font-size: .9rem; cursor: pointer; border: 1px solid var(--field-border); background: #fff; color: var(--text); font-family: inherit; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: bold; }
+  .btn.small { padding: 6px 12px; font-size: .85rem; }
+  .btn:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #c2410c; outline-offset: 2px; }
+  .btn-row .btn { flex: 1; }
+  .status { font-size: .88rem; color: var(--muted); margin-top: 6px; min-height: 1.2em; }
+  .status.err { color: var(--ng); font-weight: bold; }
+  .pv { border: 1px solid var(--border); border-radius: 8px; background: #e3e6f1; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 12px; max-height: calc(100vh - 300px); min-height: 320px; overflow-y: auto; }
+  .pv canvas { width: 100%; height: auto; display: block; box-shadow: 0 1px 4px rgba(0,0,0,.25); background: #fff; }
+  .pv .cap { font-size: .8rem; color: var(--muted); margin: 0 0 -6px; }
+  .guide { font-size: .9rem; }
+  .guide h3 { font-size: .95rem; margin: 14px 0 4px; }
+  .guide ul { padding-left: 1.3em; margin: 6px 0; }
+  .guide li { margin: 4px 0; }
+  .guide table { border-collapse: collapse; margin: 6px 0; font-size: .86rem; }
+  .guide th, .guide td { border: 1px solid var(--border); padding: 4px 10px; text-align: center; }
+  .guide th { background: #eef0fa; }
+  .locked-panel { border: 1px dashed var(--locked); border-radius: 10px; padding: 16px; text-align: center; color: var(--muted); background: #f8f9fd; }
+  .locked-panel .lead { color: var(--text); font-weight: bold; }
+  .locked-panel .feat-list { text-align: left; max-width: 620px; margin: 10px auto; font-size: .88rem; padding-left: 1.2em; }
+  .buy-btn { display: inline-block; margin-top: 8px; background: var(--accent-dark); color: #fff; font-weight: bold; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-size: .9rem; }
+  footer { max-width: 1120px; margin: 0 auto; padding: 0 16px 40px; font-size: .84rem; color: var(--muted); }
+  footer p { margin: 10px 0; }
+  footer a { color: var(--muted); }
+  #printArea { display: none; }
+  .jump { display: none; margin-top: 6px; font-size: .95rem; padding: 10px 0; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "team" "rule" "time" "pv"; }
+    #pv-card { position: static; }
+    .pv { max-height: none; }
+    .jump { display: inline-block; }
+  }
+  @media (max-width: 600px) {
+    .row2 { flex-direction: column; gap: 0; }
+    section.card { padding: 16px 12px; }
+  }
+  @media print {
+    body.printing > * { display: none !important; }
+    body.printing > #printArea { display: block !important; }
+    #printArea img { display: block; break-after: page; }
+    #printArea img:last-child { break-after: auto; }
+  }
+</style>
+<style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
+<!--ANSHIN_CSS_START--><style>:root{--anshin-w:1088px;--anshin-pad:16px}.anshin-strip,.anshin{box-sizing:border-box;width:min(var(--anshin-w),calc(100% - 2 * var(--anshin-pad)));margin-left:auto;margin-right:auto}.anshin-strip{list-style:none;margin-top:10px;margin-bottom:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:.8rem;line-height:1.5}.anshin-strip li{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border:1px solid rgba(20,120,90,.45);border-radius:999px;background:rgba(20,120,90,.07)}.anshin-strip li.anshin-more{border:0;background:none;padding:3px 2px}.anshin-strip a,.anshin a{color:inherit}.anshin{margin-top:18px;margin-bottom:18px;padding:14px 18px;border:1px solid rgba(20,120,90,.45);border-radius:10px;background:rgba(20,120,90,.05);font-size:.86rem;line-height:1.7}.anshin h2{font-size:1rem;margin:0 0 6px}.anshin p{margin:0 0 6px}.anshin ul{margin:0;padding-left:1.2em}.anshin li{margin:3px 0}.anshin details{margin-top:6px}.anshin summary{cursor:pointer;font-weight:bold}.anshin .anshin-meta{margin:8px 0 0;font-size:.8rem;opacity:.85}@media print{.anshin,.anshin-strip{display:none!important}}</style><!--ANSHIN_CSS_END-->
+<!--UPSELL_CSS_START--><style>.upsell-top{box-sizing:border-box;width:min(var(--anshin-w,880px),calc(100% - 2 * var(--anshin-pad,16px)));margin:12px auto 0;font-size:.85rem;line-height:1.6}.upsell-top a{color:inherit}.upsell-assure{list-style:none;margin:12px 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:6px 8px;font-size:.8rem;line-height:1.5}.upsell-assure li{padding:3px 10px;border:1px solid rgba(20,120,90,.45);border-radius:12px;background:rgba(20,120,90,.06)}.upsell-terms{margin:8px 0 0;font-size:.78rem;line-height:1.6;opacity:.85}.upsell-toast{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:9999;box-sizing:border-box;width:min(520px,calc(100% - 24px));padding:14px 56px 14px 16px;border-radius:12px;background:#fff;color:#222;border:1px solid #c9c2d6;box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:.88rem;line-height:1.6}.upsell-toast p{margin:0 0 6px;font-weight:bold}.upsell-toast ul{margin:0 0 10px;padding-left:1.2em}.upsell-toast li{margin:2px 0}.upsell-toast .upsell-note{display:block;margin-top:6px;font-size:.75rem;color:#555}.upsell-toast .upsell-go{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:8px;background:#c9283e;color:#fff;font-weight:bold;text-decoration:none}.upsell-toast .upsell-go:focus-visible,.upsell-toast .upsell-x:focus-visible{outline:3px solid #2560c4;outline-offset:2px}.upsell-toast .upsell-x{position:absolute;top:4px;right:4px;width:44px;height:44px;border:0;border-radius:8px;background:transparent;color:#555;font-size:1.3rem;line-height:1;cursor:pointer}.upsell-inline{white-space:nowrap;color:inherit;text-decoration:underline;text-underline-offset:2px}@media print{.upsell-top,.upsell-assure,.upsell-terms,.upsell-toast,.upsell-inline{display:none!important}}</style><!--UPSELL_CSS_END-->
+</head>
+<body>
+
+<header>
+  <h1>総当たり試合順メーカー</h1>
+  <p>チーム(人)の名前とコートの数を入れるだけで、総当たり戦の試合の順番を自動で作ります。試合の番・何回戦目・コート・審判・開始時刻まで入った表を印刷できます。コートが少ないときは、同じチームが続けて試合しにくい順番にします。登録不要・スマホでも使えます</p>
+</header>
+<!--ANSHIN_STRIP_START-->
+<ul class="anshin-strip" aria-label="データの扱い">
+  <li><span aria-hidden="true">✓</span> 入力内容はこの端末の中だけで処理</li>
+  <li><span aria-hidden="true">✓</span> 登録・ログイン不要</li>
+  <li><span aria-hidden="true">✓</span> 仕組みを公開中</li>
+  <li class="anshin-more"><a href="#anshin">データの扱いをくわしく</a></li>
+</ul>
+<!--ANSHIN_STRIP_END-->
+<!--UPSELL_TOP_START--><p class="upsell-top no-print" id="upsellTop">このページは無料のまま使えます。機能を増やしたい方は <a href="#pro-section">買い切り版(¥100・1回払い)<span aria-hidden="true"> ↓</span></a></p><!--UPSELL_TOP_END-->
+
+<main>
+<div class="layout">
+
+  <section class="card" id="team-card">
+    <h2>① チーム・人の名前</h2>
+    <label class="field"><span class="lbl">大会・練習の名前(空欄でもかまいません)</span><input type="text" id="inTitle" maxlength="24" placeholder="例: 秋季リーグ戦"></label>
+    <label class="field"><span class="lbl">チーム・人の名前(1行に1つ)</span><textarea id="inTeams" spellcheck="false" placeholder="例:&#10;Aチーム&#10;Bチーム&#10;Cチーム" aria-describedby="teamsHint"></textarea><span class="hint" id="teamsHint"></span></label>
+    <label class="field" id="countField"><span class="lbl">名前を入れないときのチーム数</span><select id="inCount"></select><span class="hint">名前が空欄のときは「1番」「2番」…の番号で作ります(抽選で決めた番号に使えます)</span></label>
+    
+    <a class="jump" href="#pv-card">見本と印刷へ ↓</a>
+  </section>
+
+  <section class="card" id="rule-card">
+    <h2>② コートと審判</h2>
+    <div class="row2">
+      <label class="field"><span class="lbl">コート(試合場・台)の数</span><select id="inCourts"></select></label>
+      <label class="field"><span class="lbl">審判</span>
+        <select id="inRef"><option value="rest" selected>試合のないチームが審判</option><option value="none">審判の欄なし</option></select>
+      </label>
+    </div>
+    <label class="field"><span class="lbl">コートの名前(1行に1つ・空欄なら「コート1」「コート2」…)</span><textarea id="inCourtNames" spellcheck="false" style="min-height:80px" placeholder="例:&#10;第1体育館&#10;1番台"></textarea></label>
+    <label class="chk"><input type="checkbox" id="inDouble"> 2回総当たり(同じ相手と2回、2回目は先・後を入れかえ)</label>
+    <label class="chk"><input type="checkbox" id="inShuffle"> 試合順をランダムにする</label>
+    <div class="btn-row hidden" id="reshuffleRow" style="margin-top:0"><button type="button" class="btn small" id="reshuffle">別の順番にする</button><span class="status" id="shuffleSt" role="status" style="flex:2;margin-top:10px"></span></div>
+    
+    <a class="jump" href="#pv-card">見本と印刷へ ↓</a>
+  </section>
+
+  <section class="card" id="time-card">
+    <h2>③ 時刻と用紙</h2>
+    <div class="row2">
+      <label class="field"><span class="lbl">1試合目の開始</span><input type="time" id="inStart"></label>
+      <label class="field"><span class="lbl">1試合の時間(分)</span><input type="number" id="inMin" min="1" max="240" placeholder="例: 15" inputmode="numeric"></label>
+      <label class="field"><span class="lbl">入れかえ・休けい(分)</span><input type="number" id="inGap" min="0" max="120" placeholder="例: 5" inputmode="numeric"></label>
+    </div>
+    <div class="row2">
+      <label class="field"><span class="lbl">昼休みなど(◯番のあと)</span><input type="number" id="inBreakAfter" min="1" max="999" placeholder="例: 6" inputmode="numeric"></label>
+      <label class="field"><span class="lbl">その休みの長さ(分)</span><input type="number" id="inBreakMin" min="1" max="240" placeholder="例: 45" inputmode="numeric"></label>
+    </div>
+    <p class="fine">開始と1試合の時間を入れると、試合ごとの開始時刻が入ります。空欄なら時刻の欄はつきません。</p>
+    <div class="row2">
+      <label class="field"><span class="lbl">用紙</span><select id="inPaper"><option value="A4" selected>A4縦</option><option value="A4L">A4横</option><option value="A3">A3縦(掲示用)</option></select><span class="hint">A3が使えないプリンターは、「画像で保存」してコンビニのプリントで印刷できます</span></label>
+      <label class="field"><span class="lbl">色</span><select id="inColor"><option value="indigo" selected>紺</option><option value="green">緑</option><option value="red">赤</option><option value="mono">白黒(インクを節約)</option></select></label>
+    </div>
+    <div class="btn-row"><button type="button" class="btn small" id="clearBtn">名前と時刻を消す</button></div>
+  </section>
+
+  <section class="card" id="pv-card">
+    <h2>④ 見本を確かめて印刷</h2>
+    <p class="status" id="sumNote"></p>
+    <p class="status" id="warnNote" role="status"></p>
+    <div class="pv" id="pv"></div>
+    <div class="status" id="outSt" role="status"></div>
+    <div class="btn-row">
+      <button type="button" class="btn primary" id="printBtn">試合順を印刷する</button>
+      
+      <button type="button" class="btn" id="pngBtn">画像で保存</button>
+    </div>
+    <p class="fine">倍率「100%」で印刷します。勝ち負けや点数を書き込むリーグ表(星取表)は、<a href="https://uuhai0625.github.io/tournament-hyo/" target="_blank" rel="noopener">トーナメント表作成ツール(新しいタブ)</a>の「総当たり」で作れます。</p>
+    <a class="jump" href="#team-card">↑ 名前の入力に戻る</a>
+  </section>
+
+</div>
+
+  <section class="card" id="pro-section">
+    <h2>チーム別の予定表・ブロック分け <span class="badge">買い切り版 ¥100(税込)</span></h2>
+    <div class="locked-panel">
+      <p class="lead">各チームに配る予定表と、大きな大会の予選リーグ分けまで。</p>
+      <p>このページの機能は無料でそのまま使えます。買い切り版(ダウンロード購入)では、次の機能が増えます:</p>
+      <ul class="feat-list">
+        <li><strong>チーム別の予定表</strong>: チームごとに「何番目・何時・どのコート・相手・先か後か・審判の番」を1枚に。切って各チームに配れます</li>
+        <li><strong>ブロック分け(予選リーグ)</strong>: 2〜6ブロック(A・B…)に分けて、ブロックの中で総当たり。コートは全ブロックで分け合います</li>
+        <li><strong>24チーム・12コートまで</strong>(無料版は12チーム・6コートまで)</li>
+        <li><strong>画像はZIPでまとめて保存・ツール名が入りません</strong>(無料版は1枚ずつ保存、用紙の右下に小さくツール名が入ります)</li>
+        <li><strong>パソコンで使うHTMLファイルです</strong>(スマホでの動作は保証していません)。ダウンロードしたファイルなので、ネットにつながっていなくても開けます</li>
+      </ul>
+<!--UPSELL_ASSURE_START--><ul class="upsell-assure" aria-label="買い切り版について"><li>¥100(税込)の1回払い・月額なし</li><li>パソコン向けのHTMLファイル(スマホでは開けない機種あり)</li><li>ネットにつながっていなくても動く</li><li>BOOTHで購入(クレジットカード・楽天ペイは手数料なし、コンビニ・銀行払いは別途手数料)</li></ul><!--UPSELL_ASSURE_END-->
+      <a class="buy-btn" href="https://uuhai0625.booth.pm/items/9018843" id="buyLink" target="_blank" rel="noopener">パソコン用の買い切り版を見る(BOOTH・新しいタブ)</a><!--UPSELL_TERMS_START--><p class="upsell-terms">販売者の情報・返品などの販売条件は、BOOTHの商品ページでご確認ください。BOOTHでの購入にはpixivのアカウントが必要です。</p><!--UPSELL_TERMS_END-->
+    </div>
+  </section>
+
+  <section class="card guide" id="guide">
+    <h2>総当たりの試合数と試合順</h2>
+    <p>総当たり(リーグ戦)では、すべてのチームが他のすべてのチームと1回ずつ試合をします。試合数は「チーム数×(チーム数−1)÷2」です。チーム数が奇数のときは、毎回1チームが休みになります。</p>
+    <table>
+      <caption style="text-align:left;font-weight:bold;padding:2px 0">総当たりのチーム数と試合数</caption>
+      <tr><th scope="col">チーム数</th><th scope="col">試合数</th><th scope="col">何回戦(リーグ戦の「節」と同じ)</th><th scope="col">1チームの試合数</th></tr>
+      <tr><td>3</td><td>3</td><td>3回戦(毎回1チーム休み)</td><td>2</td></tr>
+      <tr><td>4</td><td>6</td><td>3回戦</td><td>3</td></tr>
+      <tr><td>5</td><td>10</td><td>5回戦(毎回1チーム休み)</td><td>4</td></tr>
+      <tr><td>6</td><td>15</td><td>5回戦</td><td>5</td></tr>
+      <tr><td>7</td><td>21</td><td>7回戦(毎回1チーム休み)</td><td>6</td></tr>
+      <tr><td>8</td><td>28</td><td>7回戦</td><td>7</td></tr>
+      <tr><td>9</td><td>36</td><td>9回戦(毎回1チーム休み)</td><td>8</td></tr>
+      <tr><td>10</td><td>45</td><td>9回戦</td><td>9</td></tr>
+      <tr><td>12</td><td>66</td><td>11回戦</td><td>11</td></tr>
+    </table>
+    <h3>試合順の決め方(このツールのやり方)</h3>
+    <ul>
+      <li>「サークル方式」という、総当たりの組み合わせを作る決まった方法で、1回戦ごとに各チームが1試合ずつ(チーム数が奇数なら1チームは休み)になるように組みます。</li>
+      <li>コートの数ずつ同時に試合をします。空いたコートには次の回戦の試合を先に入れて、全体が早く終わるようにします。</li>
+      <li>コートが少ないときは、同じチームが続けて試合しないように順番を入れかえます(チーム数とコート数によっては続くことがあります)。</li>
+      <li>先(左)と後(右)の回数は、どのチームもなるべく同じになるようにしています。</li>
+    </ul>
+    <h3>よくある質問</h3>
+    <ul>
+      <li><strong>勝ち負けや順位を書く表は?</strong> <a href="https://uuhai0625.github.io/tournament-hyo/" target="_blank" rel="noopener">トーナメント表作成ツール(新しいタブ)</a>の「総当たり」で、勝・敗・勝点・順位の欄がある表(星取表)を作れます。節ごとの対戦の順番だけでよければ、そちらでも作れます。コート・審判・時刻まで入れるときは、このツールをお使いください。</li>
+      <li><strong>審判はどう決まる?</strong> その試合に出ていないチームの中から、審判の回数がなるべく少ないチームを選びます(回数が同じなら、直前・直後に試合がないチームを優先します)。試合のないチームがコートの数より少ないときは、審判の欄が空欄(書き込み用の線)になります。</li>
+      <li><strong>コートを増やしても使われないのは?</strong> 同時にできる試合は「チーム数÷2」までです。それより多いコートは使いません。</li>
+      <li><strong>個人戦(人の名前)でも使える?</strong> 使えます。チームの名前の代わりに人の名前を入れてください。</li>
+      <li><strong>入れた名前はどこかに送られる?</strong> 入力した文字はどこにも送られません。すべてこのブラウザの中で処理し、このブラウザにだけ自動で保存します。子どもの大会の表を画像でSNSなどに載せるときは、名字だけやチーム名にするなどご配慮ください。</li>
+    </ul>
+  </section>
+
+</main>
+
+<!--ANSHIN_START-->
+<section class="anshin" id="anshin" aria-labelledby="anshin-title">
+  <h2 id="anshin-title">データの扱いについて</h2>
+  <p>このページには、入力した内容を受け取る仕組みがありません。入力した文字や数字は、あなたのスマホやパソコンの中だけで処理されます。</p>
+  <ul>
+    <li>会員登録・ログイン・メールアドレスの入力はありません。</li>
+    <li>自分で確かめたい方へ: ページを開いたあと機内モードにしても、そのまま使えます。</li>
+  </ul>
+  <details>
+    <summary>もっとくわしく(保存・アクセス解析・公開について)</summary>
+    <ul>
+      <li>保存されるデータは、この端末のこのブラウザの中にだけ残ります(localStorage・sessionStorage)。共用のパソコンでは使い終わったら消してください。</li>
+      <li>アクセス解析(Google Analytics)のため、見たページのURL・参照元・端末やブラウザの種類・おおよその地域(IPアドレスから推定)・Cookieの識別子・BOOTHへのリンクのクリック・どのボタンを押したか(回数や選んだ設定を含む)がGoogleに送られます。目的は利用状況の把握です。入力した文字や画像は送りません。(<a href="https://policies.google.com/technologies/partner-sites?hl=ja" target="_blank" rel="noopener">Googleによるデータの使用</a>/<a href="https://tools.google.com/dlpage/gaoptout?hl=ja" target="_blank" rel="noopener">計測を止めるアドオン</a>。止めてもツールはそのまま使えます)</li>
+      <li>このツールの結果や作成物は目安です。入稿・契約・販売などの前には、印刷所や公式の情報でご確認ください。</li>
+      <li>処理の中身はすべて公開しています(詳しい方向け: <a href="https://github.com/uuhai0625/soatari-shiaijun" target="_blank" rel="noopener">GitHub</a>)。</li>
+    </ul>
+  </details>
+  <p class="anshin-meta">作っている人: ウーハイ(個人開発)/不具合・ご質問は<a href="https://x.com/uuhai0625" target="_blank" rel="noopener">X(@uuhai0625)</a>へ/<a href="https://uuhai0625.github.io/" target="_blank" rel="noopener">ほかのツール</a>/この説明の更新日: 2026-10-13</p>
+</section>
+<!--ANSHIN_END-->
+
+<footer>
+  <p id="privacyNote">入力した内容はどこにも送信されません(すべてこのブラウザの中で処理し、このブラウザにだけ自動で保存します)。</p>
+  <p><a href="https://uuhai0625.booth.pm/" target="_blank" rel="noopener">他のツールも見る(BOOTHショップ)</a></p>
+  <p>不具合・ご要望は X <a href="https://x.com/uuhai0625" target="_blank" rel="noopener">@uuhai0625</a> まで。</p>
+  <p class="related-tools no-print">関連する無料ツール: <a href="https://uuhai0625.github.io/tournament-hyo/" target="_blank" rel="noopener">トーナメント表作成ツール</a> ・ <a href="https://uuhai0625.github.io/shoujo-maker/" target="_blank" rel="noopener">賞状メーカー</a> ・ <a href="https://uuhai0625.github.io/#free-tools">ツール一覧</a></p>
+</footer>
+
+<div id="printArea"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var EDITION = "free"; // "full" で買い切り完全版
+
+  function track(name, params) {
+    if (!window.dataLayer) return;
+    (function () { window.dataLayer.push(arguments); })("event", name, params || {});
+  }
+  var $ = function (id) { return document.getElementById(id); };
+  function setSt(id, msg, err) { var e = $(id); if (!e) return; if (e.textContent !== msg) e.textContent = msg; e.classList.toggle("err", !!err); }
+
+  var CREDIT = true, MAXT = 12, MAXC = 6;
+  
+  var STORE = EDITION === "full" ? "uuhai-soatari-v1-full" : "uuhai-soatari-v1";
+  var FONT = '"BIZ UDGothic", "Yu Gothic", "YuGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif';
+  var THEMES = { indigo: ["#2f3e9e", "#e8ebfa"], green: ["#2f7a57", "#e3f3ea"], red: ["#a8323a", "#fae6e8"], mono: ["#333333", "#efefef"] };
+  var PAPERS = { A4: [210, 297], A4L: [297, 210], A3: [297, 420] };
+  var BL = "ABCDEF";
+
+  // ===== 入力 =====
+  function lines(id, max) { var e = $(id); return e ? e.value.split(/\r?\n|\t/).map(function (s) { return Array.from(s.trim()).slice(0, max || 14).join(""); }).filter(Boolean) : []; }
+  function intOf(id, d, lo, hi) { var e = $(id); var v = e ? parseInt(e.value, 10) : NaN; return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; }
+  var seed = 1;
+  function rnd() { seed = (Math.imul(seed, 1103515245) + 12345) >>> 0 & 0x7fffffff; return seed / 2147483648; }
+  function conf() {
+    var all = lines("inTeams"), teams = all.slice(0, MAXT), numbered = false;
+    if (!teams.length) { numbered = true; var n = intOf("inCount", 6, 2, MAXT); for (var i = 1; i <= n; i++) teams.push(i + "番"); }
+    // 同じ名前は区別できるように番号をつける
+    var used = Object.create(null); teams = teams.map(function (t) { var nm = t, k = 2; while (used[nm]) nm = t + "(" + (k++) + ")"; used[nm] = true; return nm; });
+    var st = /^(\d{1,2}):(\d{2})$/.exec($("inStart").value || ""), mins = parseInt($("inMin").value, 10), gap = parseInt($("inGap").value, 10);
+    var blocks = $("inBlocks") ? intOf("inBlocks", 1, 1, 6) : 1;
+    blocks = Math.max(1, Math.min(blocks, Math.floor(teams.length / 2)));
+    return {
+      title: $("inTitle").value.trim(), teams: teams, numbered: numbered, cut: all.length > MAXT, blocks: blocks,
+      courts: intOf("inCourts", 1, 1, MAXC), courtNames: lines("inCourtNames", 10), ref: $("inRef").value, shuffle: $("inShuffle").checked,
+      double: $("inDouble").checked, teamPages: !!($("inTeamPages") && $("inTeamPages").checked),
+      start: st ? (+st[1]) * 60 + (+st[2]) : null, mins: isFinite(mins) && mins > 0 ? Math.min(240, mins) : null, gap: isFinite(gap) && gap >= 0 ? Math.min(120, gap) : 0,
+      breakAfter: intOf("inBreakAfter", 0, 0, 999), breakMin: intOf("inBreakMin", 0, 0, 240),
+      paper: PAPERS[$("inPaper").value] ? $("inPaper").value : "A4", theme: THEMES[$("inColor").value] || THEMES.indigo
+    };
+  }
+  function courtName(C, i) { return C.courtNames[i] || "コート" + (i + 1); }
+
+  // ===== 組み合わせ(サークル方式) =====
+  // ids: チーム番号の配列。返り値: rounds = [[ [a,b], ... ], ...](-1 は休み)
+  function circle(ids, shuffle) {
+    var idx = ids.slice();
+    if (shuffle) for (var j = idx.length - 1; j > 0; j--) { var r = Math.floor(rnd() * (j + 1)), t = idx[j]; idx[j] = idx[r]; idx[r] = t; }
+    var n = idx.length, odd = n % 2 === 1;
+    if (odd) idx.push(-1);
+    var m = idx.length, rounds = [], arr = idx.slice(), pos = {};
+    idx.forEach(function (t, i) { pos[t] = i; });
+    for (var rd = 0; rd < m - 1; rd++) {
+      var pairs = [];
+      for (var k = 0; k < m / 2; k++) {
+        var a = arr[k], b = arr[m - 1 - k];
+        if (odd) {
+          // 奇数: 位置の差で先・後を決めると、どのチームもちょうど半分ずつ先になる
+          if (a >= 0 && b >= 0 && (pos[b] - pos[a] + n) % n > (n - 1) / 2) { var t1 = a; a = b; b = t1; }
+        } else if ((k === 0 && rd % 2 === 1) || (k > 0 && k % 2 === 1)) { var t2 = a; a = b; b = t2; }
+        pairs.push([a, b]);
+      }
+      rounds.push(pairs);
+      arr = [arr[0]].concat([arr[m - 1]], arr.slice(1, m - 1));
+    }
+    return rounds;
+  }
+  function blockOf(C) {
+    var n = C.teams.length, B = C.blocks, out = [], base = Math.floor(n / B), extra = n % B, s = 0;
+    for (var b = 0; b < B; b++) { var size = base + (b < extra ? 1 : 0), ids = []; for (var i = 0; i < size; i++) ids.push(s + i); s += size; out.push(ids); }
+    return out;
+  }
+  function schedule(C) {
+    var keep = seed, n = C.teams.length, blocks = blockOf(C), per = [];
+    blocks.forEach(function (ids) {
+      var rs = circle(ids, C.shuffle);
+      if (C.double) rs = rs.concat(rs.map(function (r) { return r.map(function (p) { return [p[1], p[0]]; }); }));
+      per.push(rs);
+    });
+    seed = keep;
+    var maxR = Math.max.apply(null, per.map(function (r) { return r.length; })), rem = [], restOf = {};
+    for (var ri = 0; ri < maxR; ri++) per.forEach(function (rs, bi) {
+      var round = rs[ri]; if (!round) return;
+      round.forEach(function (p) { if (p[0] >= 0 && p[1] >= 0) rem.push({ a: p[0], b: p[1], r: ri + 1, bl: bi }); else if (C.blocks === 1) restOf[ri + 1] = p[0] < 0 ? p[1] : p[0]; });
+    });
+    var useC = Math.max(1, Math.min(C.courts, Math.floor(n / 2))), oneSlotPerRound = C.blocks === 1 && useC >= Math.floor(n / 2);
+    var slots = [], prev = [], refCount = Object.create(null);
+    for (var t = 0; t < n; t++) refCount[t] = 0;
+    while (rem.length) {
+      var minR = rem[0].r, used = {}, pick = [];
+      // 1回目: 前の番で試合していないチームを、早い回戦から。2回目: 空いたコートを先の回戦の試合で埋める
+      for (var pass = 0; pass < 2 && pick.length < useC; pass++) {
+        for (var i = 0; i < rem.length && pick.length < useC; i++) {
+          var g = rem[i]; if (g.picked || g.r > minR + (pass ? 3 : 1) || used[g.a] || used[g.b]) continue;
+          if (oneSlotPerRound && g.r !== minR) continue;
+          if (pass === 0 && (prev.indexOf(g.a) >= 0 || prev.indexOf(g.b) >= 0)) continue;
+          g.picked = true; used[g.a] = used[g.b] = 1; pick.push(g);
+        }
+      }
+      if (!pick.length) { rem[0].picked = true; pick.push(rem[0]); }
+      rem = rem.filter(function (q) { return !q.picked; });
+      var rs2 = []; pick.forEach(function (q) { if (rs2.indexOf(q.r) < 0) rs2.push(q.r); });
+      slots.push({ round: rs2.join("・"), games: pick.map(function (q) { return { a: q.a, b: q.b, bl: q.bl, ref: -1 }; }), rest: oneSlotPerRound && restOf[pick[0].r] !== undefined ? [restOf[pick[0].r]] : [] });
+      prev = []; pick.forEach(function (q) { prev.push(q.a, q.b); });
+    }
+    var noRef = 0;
+    if (C.ref === "rest") {
+      slots.forEach(function (s, si) {
+        var playing = {}; s.games.forEach(function (g) { playing[g.a] = playing[g.b] = 1; });
+        var near = {}; [slots[si - 1], slots[si + 1]].forEach(function (o) { if (o) o.games.forEach(function (g) { near[g.a] = near[g.b] = 1; }); });
+        var used2 = {};
+        s.games.forEach(function (g) {
+          var cand = []; for (var t3 = 0; t3 < n; t3++) if (!playing[t3] && !used2[t3]) cand.push(t3);
+          if (!cand.length) { noRef++; return; }
+          cand.sort(function (x, y) { return (refCount[x] - refCount[y]) || ((near[x] ? 1 : 0) - (near[y] ? 1 : 0)) || (x - y); });
+          g.ref = cand[0]; used2[cand[0]] = 1; refCount[cand[0]]++;
+        });
+      });
+    }
+    slots.forEach(function (s, i) {
+      s.time = C.start !== null && C.mins ? C.start + i * (C.mins + C.gap) + (C.breakAfter && C.breakMin && i >= C.breakAfter ? C.breakMin : 0) : null;
+    });
+    return { slots: slots, games: slots.reduce(function (a, s) { return a + s.games.length; }, 0), rounds: maxR, useC: useC, noRef: noRef, full: oneSlotPerRound && n % 2 === 0 };
+  }
+  function hm(m) { if (m === null) return ""; var d = Math.floor(m / (24 * 60)); m = m % (24 * 60); return (d ? "翌" : "") + Math.floor(m / 60) + ":" + ("0" + (m % 60)).slice(-2); }
+  function vsText(C, g) { return (C.blocks > 1 ? BL[g.bl] + " " : "") + C.teams[g.a] + " 対 " + C.teams[g.b]; }
+
+  // ===== 描画 =====
+  function fit(ctx, text, maxW, size, bold, floor) {
+    var s = size; ctx.font = (bold ? "bold " : "") + s + "px " + FONT;
+    while (s > floor && ctx.measureText(text).width > maxW) { s = Math.max(floor, s * 0.92); ctx.font = (bold ? "bold " : "") + s + "px " + FONT; }
+    if (ctx.measureText(text).width > maxW) { var a = Array.from(text); while (a.length > 1 && ctx.measureText(a.join("") + "…").width > maxW) a.pop(); return a.join("") + "…"; }
+    return text;
+  }
+  function credit(ctx, W, H, k) {
+    if (!CREDIT) return;
+    ctx.save(); ctx.fillStyle = "#9a9a9a"; ctx.font = (2.6 * k) + "px " + FONT; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic"; ctx.fillText("総当たり試合順メーカー", (W - 7) * k, (H - 7) * k); ctx.restore();
+  }
+  function layout(C, S) {
+    var P = PAPERS[C.paper], W = P[0], H = P[1], m = 12, top = m + 18, hasTime = S.slots.some(function (s) { return s.time !== null; }), hasRest = S.slots.some(function (s) { return s.rest.length; });
+    var rh = C.ref === "rest" ? 13 : 9, per = Math.max(1, Math.floor((H - top - m - 12 - 9) / rh));
+    var fixed = 12 + 13 + (hasTime ? 18 : 0), restW = hasRest ? 26 : 0, cw = (W - 2 * m - fixed - restW) / S.useC;
+    return { W: W, H: H, m: m, top: top, rh: rh, per: per, hasTime: hasTime, hasRest: hasRest, cw: cw, restW: restW };
+  }
+  function schedulePages(C, S) {
+    var L = layout(C, S), out = [];
+    for (var i = 0; i < S.slots.length; i += L.per) out.push({ kind: "sched", from: i, to: Math.min(S.slots.length, i + L.per), L: L });
+    if (!out.length) out.push({ kind: "sched", from: 0, to: 0, L: L });
+    return out;
+  }
+  function drawSched(ctx, C, S, pg, k, idx, total) {
+    var L = pg.L, W = L.W, H = L.H, m = L.m, top = L.top, rh = L.rh, cw = L.cw, restW = L.restW;
+    var sub = C.teams.length + "チーム" + (C.blocks > 1 ? "・" + C.blocks + "ブロック" : "") + "・全" + S.games + "試合・" + S.rounds + "回戦" + (C.double ? "(2回総当たり)" : "") + "・コート" + S.useC + "面" + (total > 1 ? "  (" + (idx + 1) + "/" + total + ")" : "");
+    ctx.fillStyle = C.theme[0]; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(fit(ctx, C.title || "総当たり 試合順", (W - 2 * m) * k, 7 * k, true, 4 * k), m * k, (m + 6) * k);
+    ctx.fillStyle = "#333"; ctx.fillText(fit(ctx, sub, (W - 2 * m) * k, 3.4 * k, false, 2.4 * k), m * k, (m + 12) * k);
+    var cols = [{ w: 12, label: "番" }, { w: 13, label: "回戦" }];
+    if (L.hasTime) cols.push({ w: 18, label: "開始" });
+    var x = m, y = top;
+    ctx.fillStyle = C.theme[0]; ctx.fillRect(m * k, y * k, (W - 2 * m) * k, 8 * k);
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    cols.forEach(function (c) { ctx.fillText(fit(ctx, c.label, (c.w - 1) * k, 3.4 * k, true, 2.4 * k), (x + c.w / 2) * k, (y + 4) * k); x += c.w; });
+    for (var ci = 0; ci < S.useC; ci++) { ctx.fillText(fit(ctx, S.useC > 1 || C.courtNames[0] ? courtName(C, ci) : "対戦", (cw - 2) * k, 3.4 * k, true, 2.4 * k), (x + cw / 2) * k, (y + 4) * k); x += cw; }
+    if (L.hasRest) ctx.fillText(fit(ctx, "休み", (restW - 1) * k, 3.4 * k, true, 2.4 * k), (x + restW / 2) * k, (y + 4) * k);
+    y += 8;
+    for (var i = pg.from; i < pg.to; i++) {
+      var s = S.slots[i], ry = y + (i - pg.from) * rh;
+      if ((i - pg.from) % 2) { ctx.fillStyle = C.theme[1]; ctx.fillRect(m * k, ry * k, (W - 2 * m) * k, rh * k); }
+      x = m; ctx.fillStyle = "#1d1d1d"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "bold " + (3.8 * k) + "px " + FONT; ctx.fillText(String(i + 1), (x + cols[0].w / 2) * k, (ry + rh / 2) * k); x += cols[0].w;
+      ctx.fillText(fit(ctx, String(s.round), (cols[1].w - 1) * k, 3.4 * k, false, 2.4 * k), (x + cols[1].w / 2) * k, (ry + rh / 2) * k); x += cols[1].w;
+      if (L.hasTime) { ctx.fillText(fit(ctx, hm(s.time), (cols[2].w - 1) * k, 3.4 * k, false, 2.4 * k), (x + cols[2].w / 2) * k, (ry + rh / 2) * k); x += cols[2].w; }
+      for (var c2 = 0; c2 < S.useC; c2++) {
+        var g = s.games[c2];
+        if (g) {
+          var cy = C.ref === "rest" ? ry + rh * 0.38 : ry + rh / 2;
+          ctx.fillStyle = "#1d1d1d"; ctx.fillText(fit(ctx, vsText(C, g), (cw - 3) * k, 4.2 * k, true, 2.8 * k), (x + cw / 2) * k, cy * k);
+          if (C.ref === "rest") {
+            ctx.fillStyle = "#444";
+            if (g.ref >= 0) ctx.fillText(fit(ctx, "審判: " + C.teams[g.ref], (cw - 3) * k, 3.2 * k, false, 2.6 * k), (x + cw / 2) * k, (ry + rh * 0.76) * k);
+            else { ctx.font = (3 * k) + "px " + FONT; ctx.fillText("審判: ", (x + cw / 2 - 8) * k, (ry + rh * 0.76) * k); ctx.strokeStyle = "#777"; ctx.lineWidth = 0.2 * k; ctx.beginPath(); ctx.moveTo((x + cw / 2 - 4) * k, (ry + rh * 0.86) * k); ctx.lineTo((x + Math.min(cw - 3, cw / 2 + 14)) * k, (ry + rh * 0.86) * k); ctx.stroke(); }
+          }
+        }
+        x += cw;
+      }
+      if (L.hasRest && s.rest.length) { ctx.fillStyle = "#555"; ctx.fillText(fit(ctx, s.rest.map(function (t) { return C.teams[t]; }).join("・"), (restW - 2) * k, 3.2 * k, false, 2.4 * k), (x + restW / 2) * k, (ry + rh / 2) * k); }
+    }
+    var bottom = y + (pg.to - pg.from) * rh;
+    ctx.strokeStyle = "#666"; ctx.lineWidth = 0.25 * k;
+    for (var r = 0; r <= pg.to - pg.from; r++) { ctx.beginPath(); ctx.moveTo(m * k, (y + r * rh) * k); ctx.lineTo((W - m) * k, (y + r * rh) * k); ctx.stroke(); }
+    var xs = [m]; x = m; cols.forEach(function (c) { x += c.w; xs.push(x); }); for (var c3 = 0; c3 < S.useC; c3++) { x += cw; xs.push(x); } if (L.hasRest) xs.push(x + restW);
+    xs.forEach(function (xx) { ctx.beginPath(); ctx.moveTo(xx * k, top * k); ctx.lineTo(xx * k, bottom * k); ctx.stroke(); });
+    ctx.lineWidth = 0.45 * k; ctx.strokeRect(m * k, top * k, (W - 2 * m) * k, (bottom - top) * k);
+    ctx.fillStyle = "#555"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(fit(ctx, "左に書いたチームが「先」です(先攻・先手・ホーム側など。決め方は大会のルールに合わせてください)。" + (C.ref === "rest" && S.noRef ? "審判が空欄の試合は、書き込んでください。" : ""), (W - 2 * m) * k, 2.8 * k, false, 2.2 * k), m * k, (bottom + 6) * k);
+    if (C.breakAfter && C.breakMin && L.hasTime && C.breakAfter < S.slots.length) ctx.fillText(C.breakAfter + "番のあとに" + C.breakMin + "分の休みがあります。", m * k, (bottom + 11) * k);
+    credit(ctx, W, H, k);
+  }
+  
+  var teamPagesOf = function () { return []; };
+  
+  function render(C, S, pg, i, total, dpi) {
+    var k = dpi / 25.4, W = pg.kind === "sched" ? pg.L.W : 210, H = pg.kind === "sched" ? pg.L.H : 297, c = document.createElement("canvas");
+    c.width = Math.round(W * k); c.height = Math.round(H * k);
+    var ctx = c.getContext("2d"); if (!ctx) return null;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    if (pg.kind === "sched") drawSched(ctx, C, S, pg, k, i, total);
+    
+    return c;
+  }
+
+  // ===== 見本 =====
+  var lastSum = "";
+  function refresh() {
+    var C = conf(), S = schedule(C), SP = schedulePages(C, S), TP = teamPagesOf(C, S), P = SP.concat(TP), box = $("pv");
+    box.textContent = "";
+    P.forEach(function (pg, i) {
+      var W = pg.kind === "sched" ? pg.L.W : 210, c = render(C, S, pg, i, SP.length, Math.min(900, 820 * (window.devicePixelRatio > 1 ? 1.2 : 1)) / W * 25.4); if (!c) return;
+      if (P.length > 1) { var p = document.createElement("p"); p.className = "cap"; p.textContent = pg.kind === "sched" ? "試合順 " + (i + 1) + "ページ目" : "チーム別の予定(" + pg.teams.map(function (t) { return C.teams[t]; }).join("・") + ")"; box.appendChild(p); }
+      c.setAttribute("role", "img"); c.setAttribute("aria-label", pg.kind === "sched" ? "試合順の見本(" + (i + 1) + "ページ目)" : "チーム別の予定の見本"); box.appendChild(c);
+    });
+    var n = C.teams.length, msg = (C.numbered ? "見本は番号(1番〜" + n + "番)で作っています。名前を入れると表に入ります。" : "") + n + "チーム・全" + S.games + "試合・" + S.rounds + "回戦" + (n % 2 && C.blocks === 1 ? "(毎回1チーム休み)" : "") + "。コート" + S.useC + "面で、全" + S.slots.length + "番に分けて試合をします";
+    if (S.slots.length && S.slots[S.slots.length - 1].time !== null) msg += "(最後の試合の開始 " + hm(S.slots[S.slots.length - 1].time) + ")";
+    else if (C.start !== null && !C.mins) msg += "(「1試合の時間」も入れると、開始時刻が入ります)";
+    if (lastSum !== msg) { setSt("sumNote", msg + "。", false); lastSum = msg; }
+    var warn = [];
+    if (C.cut) warn.push(EDITION === "full" ? "24チームまでです(25行目からは入りません)" : "無料版は12チームまでです(13行目からは入りません。買い切り版は24チームまで)");
+    if (C.courts > S.useC) warn.push("同時にできる試合は" + S.useC + "試合までなので、コートは" + S.useC + "面だけ使います");
+    if (S.full) warn.push("全チームが毎回試合をするので、続けての試合と審判なしは避けられません(コートを減らすと休みと審判が入ります)");
+    else if (C.ref === "rest" && S.noRef) warn.push("試合のないチームがコートの数より少ない番があり、" + S.noRef + "試合は審判が空欄になります");
+    if (SP[0] && SP[0].L.cw < 30) warn.push("コートの列が細いので、名前が小さくなります。用紙を「A4横」か「A3縦」にすると読みやすくなります");
+    setSt("warnNote", warn.join("。") + (warn.length ? "。" : ""), !!C.cut);
+    $("countField").classList.toggle("hidden", !C.numbered);
+    $("reshuffleRow").classList.toggle("hidden", !C.shuffle);
+    if ($("printTeamBtn")) $("printTeamBtn").classList.toggle("hidden", !C.teamPages);
+    if ($("outSt").classList.contains("err")) setSt("outSt", "", false);
+    save();
+  }
+  var timer = null;
+  function later() { clearTimeout(timer); timer = setTimeout(refresh, 200); }
+  function flush() { if (timer) { clearTimeout(timer); timer = null; refresh(); } }
+
+  // ===== 自動保存 =====
+  var FIELDS = ["inTitle", "inTeams", "inCount", "inBlocks", "inCourts", "inRef", "inCourtNames", "inStart", "inMin", "inGap", "inBreakAfter", "inBreakMin", "inPaper", "inColor"];
+  var CHECKS = ["inShuffle", "inDouble", "inTeamPages"];
+  function save() { try { var o = { seed: seed }; FIELDS.forEach(function (id) { if ($(id)) o[id] = $(id).value; }); CHECKS.forEach(function (id) { if ($(id)) o[id] = $(id).checked; }); localStorage.setItem(STORE, JSON.stringify(o)); } catch (e) {} }
+  function load() {
+    try {
+      var o = JSON.parse(localStorage.getItem(STORE) || "null"); if (!o || typeof o !== "object") return;
+      FIELDS.forEach(function (id) { var v = o[id], el = $(id); if (typeof v !== "string" || !el) return; if (el.tagName === "SELECT") { if ([].some.call(el.options, function (op) { return op.value === v; })) el.value = v; } else el.value = el.tagName === "TEXTAREA" ? v.slice(0, 2000) : v.slice(0, 40); });
+      CHECKS.forEach(function (id) { if ($(id) && typeof o[id] === "boolean") $(id).checked = o[id]; });
+      if (typeof o.seed === "number" && o.seed > 0) seed = (Math.floor(o.seed) & 0x7fffffff) || 1;
+    } catch (e) {}
+  }
+  $("clearBtn").addEventListener("click", function () {
+    if (!window.confirm("入力した名前・大会の名前・コートの名前・時刻を消しますか?(このブラウザに自動で保存した内容も消えます)")) return;
+    ["inTitle", "inTeams", "inCourtNames", "inStart", "inMin", "inGap", "inBreakAfter", "inBreakMin"].forEach(function (id) { $(id).value = ""; });
+    try { localStorage.removeItem(STORE); } catch (e) {}
+    refresh(); setSt("outSt", "入力を消しました。");
+  });
+
+  // ===== イベント =====
+  ["inCount", "inBlocks", "inCourts", "inRef", "inPaper", "inColor", "inDouble", "inTeamPages"].forEach(function (id) { if ($(id)) $(id).addEventListener("change", refresh); });
+  ["inTitle", "inTeams", "inCourtNames", "inMin", "inGap", "inBreakAfter", "inBreakMin"].forEach(function (id) { $(id).addEventListener("input", later); });
+  $("inStart").addEventListener("change", refresh); $("inStart").addEventListener("input", later);
+  $("inShuffle").addEventListener("change", function () { if (this.checked) seed = (Date.now() % 2147483646) + 1; refresh(); });
+  $("reshuffle").addEventListener("click", function () { seed = (Date.now() % 2147483646) + 1; refresh(); setSt("shuffleSt", "別の順番にしました。"); });
+
+  // ===== 印刷・保存 =====
+  function toBlob(c) { return new Promise(function (res) { c.toBlob(function (b) { res(b); }, "image/png"); }); }
+  function download(blob, name) {
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+  function renderAll(C, S, P, nS, dpi) {
+    var out = [], p = Promise.resolve();
+    P.forEach(function (pg, i) { p = p.then(function () { var c = render(C, S, pg, i, nS, dpi); if (!c) throw new Error("canvas"); return toBlob(c).then(function (b) { c.width = c.height = 0; if (!b) throw new Error("blob"); out.push(b); }); }); });
+    return p.then(function () { return out; });
+  }
+  var busyFlag = false, printUrls = [];
+  function clearPrint() { printUrls.forEach(function (u) { URL.revokeObjectURL(u); }); printUrls = []; $("printArea").textContent = ""; document.body.classList.remove("printing"); }
+  function doPrint(teamOnly) {
+    if (busyFlag) return;
+    flush();
+    var C = conf(), S = schedule(C), SP = schedulePages(C, S), P = teamOnly ? teamPagesOf(C, S) : SP, paper = teamOnly ? PAPERS.A4 : PAPERS[C.paper];
+    if (!P.length) return;
+    busyFlag = true; clearPrint();
+    $("pageStyle").textContent = "@page { size: " + paper[0] + "mm " + paper[1] + "mm; margin: 0; }";
+    setSt("outSt", "印刷用の画像を作っています…");
+    renderAll(C, S, P, SP.length, P.length > 6 ? 200 : 250).then(function (blobs) {
+      return Promise.all(blobs.map(function (b) {
+        return new Promise(function (res, rej) { var u = URL.createObjectURL(b), im = new Image(); printUrls.push(u); im.style.width = (paper[0] - 0.3) + "mm"; im.style.height = (paper[1] - 0.3) + "mm"; im.onload = res; im.onerror = function () { rej(new Error("img")); }; im.alt = ""; im.src = u; $("printArea").appendChild(im); });
+      })).then(function () { return blobs.length; });
+    }).then(function (cnt) {
+      document.body.classList.add("printing");
+      setSt("outSt", "印刷画面を開きました(" + cnt + "枚)。倍率は「100%」がおすすめです。");
+      track("soatari_print", { teams: C.teams.length, courts: S.useC, pages: cnt, dbl: C.double ? 1 : 0, blocks: C.blocks, team: teamOnly ? 1 : 0 });
+      setTimeout(function () { window.print(); }, 50);
+    }).catch(function () { clearPrint(); setSt("outSt", "印刷用の画像を作れませんでした。ページを読み込み直して、もう一度お試しください。", true); }).then(function () { busyFlag = false; });
+  }
+  $("printBtn").addEventListener("click", function () { doPrint(false); });
+  if ($("printTeamBtn")) $("printTeamBtn").addEventListener("click", function () { doPrint(true); });
+  window.addEventListener("afterprint", function () { document.body.classList.remove("printing"); });
+  var saveMany = function (blobs, names) {
+    var p = Promise.resolve();
+    blobs.forEach(function (b, i) { p = p.then(function () { download(b, names[i]); return new Promise(function (r) { setTimeout(r, 700); }); }); });
+    return p;
+  };
+  
+  $("pngBtn").addEventListener("click", function () {
+    if (busyFlag) return;
+    flush();
+    var C = conf(), S = schedule(C), SP = schedulePages(C, S), P = SP.concat(teamPagesOf(C, S)), safe = (C.title || "総当たり試合順").replace(/[\/\\:*?"<>|]/g, "");
+    var names = P.map(function (pg, i) { return safe + "_" + ("0" + (i + 1)).slice(-2) + "_" + (pg.kind === "sched" ? "試合順" : "予定_" + pg.teams.map(function (t) { return C.teams[t].replace(/[\/\\:*?"<>|]/g, ""); }).join("・")) + ".png"; });
+    busyFlag = true; setSt("outSt", "画像を作っています…");
+    renderAll(C, S, P, SP.length, P.length > 6 ? 200 : 250).then(function (blobs) {
+      var phone = window.matchMedia && matchMedia("(pointer:coarse)").matches, files = null;
+      track("soatari_save", { teams: C.teams.length, courts: S.useC, pages: blobs.length, dbl: C.double ? 1 : 0, blocks: C.blocks });
+      try { files = blobs.map(function (b, i) { return new File([b], names[i], { type: "image/png" }); }); } catch (e) {}
+      if (phone && files && navigator.canShare && navigator.canShare({ files: files })) {
+        setSt("outSt", "共有メニューが開きます。iPhoneは「画像を保存」、Androidは「ダウンロード」などを選んでください。");
+        return navigator.share({ files: files }).then(function () { setSt("outSt", "保存しました。"); }, function (err) {
+          if (err && err.name === "AbortError") { setSt("outSt", "共有をやめました。もう一度押すと保存できます。"); return; }
+          return saveMany(blobs, names, safe + ".zip").then(function () { setSt("outSt", "保存しました。"); });
+        });
+      }
+      return saveMany(blobs, names, safe + "_" + blobs.length + "枚.zip").then(function () { setSt("outSt", (blobs.length > 1 ? blobs.length + "枚の画像を" : "画像を") + "保存しました。" + (blobs.length > 1 && EDITION !== "full" ? "ブラウザが「複数のファイルのダウンロード」を確かめてきたら、許可してください。" : "")); });
+    }).catch(function () { setSt("outSt", "画像を作れませんでした。ページを読み込み直して、もう一度お試しください。", true); }).then(function () { busyFlag = false; });
+  });
+
+  if (EDITION === "full") $("pro-section").classList.add("hidden");
+  if (EDITION !== "full") {
+    $("privacyNote").innerHTML = '入力した内容はどこにも送信されません(すべてこのブラウザの中で処理し、このブラウザにだけ自動で保存します)。このページでは利用状況の把握のためにアクセス解析(Google Analytics)を使っています(入力した内容は含みません)。<a href="https://policies.google.com/technologies/partner-sites?hl=ja" target="_blank" rel="noopener">Googleによるデータの使用について</a>';
+  }
+  // 初期値
+  for (var n = 2; n <= MAXT; n++) { var o = document.createElement("option"); o.value = n; o.textContent = n + "チーム"; if (n === 6) o.selected = true; $("inCount").appendChild(o); }
+  for (var c = 1; c <= MAXC; c++) { var o2 = document.createElement("option"); o2.value = c; o2.textContent = c + "面"; if (c === 1) o2.selected = true; $("inCourts").appendChild(o2); }
+  $("teamsHint").textContent = (EDITION === "full" ? "24チームまで。" : "12チームまで(買い切り版は24チームまで)。") + "1つ14文字まで。Excelの1列をそのまま貼り付けても使えます。人の名前でもかまいません。同じ名前には(2)などがつきます";
+  load();
+  refresh();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
+})();
+</script>
+<!--UPSELL_JS_START-->
+<script>
+(function () {
+  "use strict";
+  var q = new URLSearchParams(location.search);
+  if (q.get("obs") === "1" || document.documentElement.classList.contains("obs")) return;
+  // 小さな案内(トースト)は、買い切り版がパソコン向けなので、マウス操作の広い画面でだけ出す
+  var pc = !!(window.matchMedia && matchMedia("(pointer:fine) and (min-width:720px)").matches);
+  var buy = document.getElementById("buyLink");
+  var pro = document.getElementById("pro-section");
+  if (!buy || !pro) return;
+  var FEATS = [];
+  var path = location.pathname.replace(/index\.html$/, "");
+  var KEY_CLOSED = "upsell_closed_until:" + path, KEY_SHOWN = "upsell_shown:" + path;
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  function sess(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch (e) { return null; } }
+  function gtagEv(name, p) { if (!window.dataLayer) return; (function () { window.dataLayer.push(arguments); })("event", name, p || {}); }
+
+  var shown = false;
+  function blocked() {
+    if (shown || sess(KEY_SHOWN) === "1") return true;
+    var until = Number(store(KEY_CLOSED) || 0);
+    return until && Date.now() < until;
+  }
+  function feats() {
+    if (FEATS.length) return FEATS;
+    var out = [];
+    var lis = pro.querySelectorAll(".feat-list li");
+    for (var i = 0; i < lis.length && out.length < 3; i++) {
+      var all = lis[i].textContent.replace(/\s+/g, " ").trim();
+      if (/スマホ|HTMLファイル|パソコンで使う/.test(all)) continue;
+      var st = lis[i].querySelectorAll("strong");
+      var t = st.length === 1 ? st[0].textContent : all.split(/[::。]/)[0];
+      t = t.replace(/[((][^()()]*[))]/g, "").replace(/\s+/g, " ").trim();
+      if (t.length > 40) t = t.slice(0, 39) + "…";
+      if (t) out.push(t);
+    }
+    return out;
+  }
+  // 「〜してください」「できません」など、失敗の表示が出ていたら案内しない
+  function failed() {
+    var els = document.querySelectorAll('[role="status"], [role="alert"], [aria-live]');
+    for (var i = 0; i < els.length; i++) {
+      if (pro.contains(els[i]) || !els[i].offsetParent) continue;
+      if (/ください|できません|できませんでした|失敗|ありません|エラー/.test(els[i].textContent)) return true;
+    }
+    return false;
+  }
+  function proVisible() {
+    var r = pro.getBoundingClientRect();
+    return r.top < innerHeight && r.bottom > 0;
+  }
+  function show(trigger) {
+    if (!pc || blocked() || (trigger === "action" && failed()) || proVisible()) return;
+    var list = feats();
+    if (!list.length) return;
+    shown = true;
+    sess(KEY_SHOWN, "1");
+    var box = document.createElement("aside");
+    box.className = "upsell-toast";
+    box.setAttribute("aria-label", "買い切り版のご案内");
+    box.setAttribute("aria-live", "polite");
+    document.body.appendChild(box);
+    var p = document.createElement("p");
+    p.textContent = trigger === "limit"
+      ? "この先は買い切り版の機能です。パソコン用の買い切り版(¥100・税込)なら:"
+      : "うまくできましたか? パソコン用の買い切り版(¥100・税込)なら、さらに:";
+    var ul = document.createElement("ul");
+    list.forEach(function (t) { var li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+    var a = document.createElement("a");
+    a.className = "upsell-go";
+    a.id = "upsellToastLink";
+    a.href = buy.href;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = "BOOTHで見る(新しいタブ)";
+    var bg = getComputedStyle(buy).backgroundColor;
+    if (bg && !/rgba?\(0, 0, 0, 0\)|transparent/.test(bg)) a.style.background = bg;
+    var x = document.createElement("button");
+    x.type = "button";
+    x.className = "upsell-x";
+    x.setAttribute("aria-label", "この案内を閉じる");
+    x.textContent = "×";
+    function close(remember) {
+      if (box.parentNode) box.parentNode.removeChild(box);
+      document.removeEventListener("keydown", onKey);
+      if (remember) store(KEY_CLOSED, String(Date.now() + 7 * 864e5));
+    }
+    // Escはページ側の操作(選択解除など)にも使われるので、案内の中にフォーカスがある時だけ閉じる
+    function onKey(e) { if (e.key === "Escape" && box.contains(document.activeElement)) close(true); }
+    x.addEventListener("click", function () { close(true); });
+    a.addEventListener("click", function () { setTimeout(function () { close(false); }, 0); });
+    document.addEventListener("keydown", onKey);
+    setTimeout(function () {
+      var note = document.createElement("small");
+      note.className = "upsell-note";
+      note.textContent = "スマホではファイルを開けない機種があります";
+      box.appendChild(x); box.appendChild(p); box.appendChild(ul); box.appendChild(a); box.appendChild(note);
+    }, 50);
+    gtagEv("upsell_show", { trigger: trigger });
+  }
+
+  // 保存・コピー・印刷・書き出しを押した直後(結果を受け取れたタイミング)
+  var OK = /保存|コピー|印刷|書き出|ダウンロード|共有|PDF/;
+  var NG = /読み込|リセット|消|削除|このブラウザに保存|確認|イメージを見る|戻/;
+  document.addEventListener("click", function (e) {
+    var el = e.target && e.target.closest ? e.target.closest("button, a[download], input[type=button], input[type=submit]") : null;
+    if (!el || el.closest("#pro-section, .upsell-toast, #anshin")) return;
+    var label = (el.textContent || el.value || "").replace(/\s+/g, " ");
+    if (!OK.test(label) || NG.test(label)) return;
+    setTimeout(function () { show("action"); }, 1500);
+  }, true);
+
+  // 無料版の上限まわり
+  // (1) ページが出す「買い切り版」の一文に、購入欄へのリンクを足す(スマホでも)。🔒のタブは薄く表示されているので入れない
+  // (2) 案内(パソコンのみ)は、はっきりした合図のときだけ出す: 🔒のクリック・買い切り版にふれたalert・
+  //     初めて出た「〜まで/のみ/以降/入っていません」の上限の一文(計算のたびに出る誘導文や、同じ文の描き直しでは出さない)
+  var SKIP = "#pro-section, .upsell-toast, .upsell-top, #anshin, a, button, label, select, option, h1, h2, h3, .badge, header, footer, nav, textarea, pre, code, [contenteditable], svg";
+  var LIMIT = /まで|のみ|以降|入っていません/;
+  var seenText = {}, ready = false;
+  function goPro(e) {
+    if (e) e.preventDefault();
+    pro.setAttribute("tabindex", "-1");
+    pro.scrollIntoView({ behavior: "smooth", block: "start" });
+    pro.focus({ preventScroll: true });
+  }
+  function linkify(root, deep) {
+    var limitHit = false;
+    var els = root.matches("p, div, span, li") ? [root] : [];
+    if (deep) els = els.concat([].slice.call(root.querySelectorAll("p, div, span, li")));
+    els.forEach(function (el) {
+      if (el.closest(SKIP) || el.closest('[role="radio"], [role="option"], [role="tab"], [role="button"], [tabindex]:not([tabindex="-1"])') || el.querySelector("a, button, p, div, li, input, label")) return;
+      // 選択肢の「○○(買い切り版)」ではなく、文として買い切り版にふれている要素だけ
+      var own = "";
+      for (var n = el.firstChild; n; n = n.nodeType === 1 && n.className === "upsell-inline" ? null : n.nextSibling) if (n.nodeType === 3) own += n.nodeValue;
+      own = own.trim();
+      if (own.indexOf("買い切り版") < 0 || /[((]買い切り版[))]$/.test(own) || /^🔒/.test(own)) return;
+      var key = own.replace(/\d+/g, "#");
+      if (ready && !seenText[key] && LIMIT.test(own) && !el.closest(".teaser, #teaser, [id$=teaser], #tz")) limitHit = true;
+      seenText[key] = 1;
+      if (el.querySelector(".upsell-inline")) return;
+      var a = document.createElement("a");
+      a.className = "upsell-inline";
+      a.href = "#pro-section";
+      a.setAttribute("aria-label", "くわしく:買い切り版の説明へ移動");
+      a.textContent = "くわしく";
+      var ar = document.createElement("span");
+      ar.setAttribute("aria-hidden", "true");
+      ar.textContent = " ↓";
+      a.appendChild(ar);
+      a.addEventListener("click", goPro);
+      el.appendChild(document.createTextNode(" "));
+      el.appendChild(a);
+    });
+    return limitHit;
+  }
+  linkify(document.body, true);
+  setTimeout(function () { ready = true; }, 1500);
+  var topLink = document.querySelector("#upsellTop a");
+  if (topLink) topLink.addEventListener("click", goPro);
+  new MutationObserver(function (ms) {
+    // 変わったところだけを調べる(足された要素はその中も、文字の変更は親要素だけ)
+    var hit = false, done = new Set();
+    function check(t, deep) {
+      if (!t || t.nodeType !== 1 || done.has(t) || t.closest(".upsell-toast")) return;
+      done.add(t);
+      if (linkify(t, deep)) hit = true;
+    }
+    ms.forEach(function (m) {
+      if (m.type === "characterData") { check(m.target.parentNode, false); return; }
+      check(m.target, false);
+      for (var i = 0; i < m.addedNodes.length; i++) if (m.addedNodes[i].nodeType === 1) check(m.addedNodes[i], true);
+    });
+    if (hit) setTimeout(function () { show("limit"); }, 800);
+  }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  document.addEventListener("click", function (e) {
+    var el = e.target && e.target.closest ? e.target.closest("button, div, span, li") : null;
+    var first = el && el.firstChild && el.firstChild.nodeType === 3 ? el.firstChild.nodeValue : "";
+    if (!/^\s*🔒/.test(first) || e.target.closest("#pro-section")) return;
+    if (pc) setTimeout(function () { show("limit"); }, 300); else goPro();
+  }, true);
+  var origAlert = window.alert;
+  window.alert = function (msg) {
+    var r = origAlert.apply(window, arguments);
+    if (/買い切り版/.test(String(msg))) setTimeout(function () { show("limit"); }, 300);
+    return r;
+  };
+})();
+</script>
+<!--UPSELL_JS_END-->
+</body>
+</html>
